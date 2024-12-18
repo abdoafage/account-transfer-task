@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{{ title }}</title>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      .search-box {
+        margin: 20px 0;
+      }
+      .message {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+      }
+      .success {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      .error {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+      .loading {
+        display: none;
+        margin-left: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Account Management System</h1>
+
+    <!-- File Upload Form -->
+    <form id="uploadForm" method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="file" name="csv_file" id="csvFile" accept=".csv" required />
+      <button type="submit">Upload CSV</button>
+      <span id="loading" class="loading">Uploading...</span>
+    </form>
+    <div id="message"></div>
+
+    <!-- Search Account -->
+    <div class="search-box">
+      <input type="text" id="accountSearch" placeholder="Search account..." />
+      <button onclick="searchAccount()">Search</button>
+      <button onclick="location.reload()">Reset</button>
+    </div>
+
+    <!-- Transfer Money Form -->
+    <div
+      class="transfer-form"
+      style="margin: 20px 0; padding: 15px; border: 1px solid #ddd"
+    >
+      <h3>Transfer Money</h3>
+      <form id="transferForm">
+        <input
+          type="text"
+          id="fromAccount"
+          placeholder="From Account ID"
+          required
+        />
+        <input
+          type="text"
+          id="toAccount"
+          placeholder="To Account ID"
+          required
+        />
+        <input
+          type="number"
+          id="amount"
+          placeholder="Amount"
+          step="0.01"
+          min="0"
+          required
+        />
+        <button type="submit">Transfer</button>
+      </form>
+    </div>
+
+    <!-- Accounts Table -->
+    <table>
+      <thead>
+        <tr>
+          <th>Account ID</th>
+          <th>Name</th>
+          <th>Balance</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for account in accounts %}
+        <tr>
+          <td>{{ account.account_id }}</td>
+          <td>{{ account.name }}</td>
+          <td>{{ account.balance }}</td>
+          <td>
+            <a href="{% url 'account_details' account_id=account.account_id %}"
+              >View Details</a
+            >
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <script>
+      document
+        .getElementById("uploadForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const fileInput = document.getElementById("csvFile");
+          const loading = document.getElementById("loading");
+          const messageDiv = document.getElementById("message");
+
+          if (!fileInput.files.length) {
+            showMessage("Please select a file", "error");
+            return;
+          }
+
+          const file = fileInput.files[0];
+          if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
+            showMessage("Please upload a CSV file", "error");
+            return;
+          }
+          console.log(file);
+          const formData = new FormData();
+          formData.append("file", file);
+          for (let [key, value] of formData.entries()) {
+            console.log(`${key}:`, value);
+          }
+          loading.style.display = "inline";
+          messageDiv.innerHTML = "";
+
+          fetch("http://localhost:8000/api/import_accounts/", {
+            method: "POST",
+            body: formData,
+            headers: {
+              "X-CSRFToken": document.querySelector(
+                "[name=csrfmiddlewaretoken]"
+              ).value,
+            },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              loading.style.display = "none";
+              //   if (data.success) {
+              showMessage(data.message, "success");
+              location.reload(); // Reload to show updated data
+              //   } else {
+              // showMessage(data.message || "Upload failed", "error");
+              //   }
+            })
+            .catch((error) => {
+              loading.style.display = "none";
+              showMessage("An error occurred during upload", "error");
+            });
+        });
+
+      function showMessage(message, type) {
+        const messageDiv = document.getElementById("message");
+        messageDiv.className = `message ${type}`;
+        messageDiv.textContent = message;
+      }
+
+      function searchAccount() {
+        const accountId = document.getElementById("accountSearch").value;
+        fetch(`http://localhost:8000/api/accounts/${accountId}/`)
+          .then((response) => response.json())
+          .then((data) => {
+            const tbody = document.querySelector("table tbody");
+            tbody.innerHTML = ""; // Clear existing rows
+            console.log(data);
+            data = [data];
+            data.forEach((account) => {
+              const row = document.createElement("tr");
+              row.innerHTML = `
+          <td>${account.account_id}</td>
+          <td>${account.name}</td>
+          <td>${account.balance}</td>
+          <td>
+            <a href="/account_details/${account.account_id}/">View Details</a>
+          </td>
+        `;
+              tbody.appendChild(row);
+            });
+          })
+          .catch((error) => {
+            showMessage("Error fetching accounts", "error");
+          });
+      }
+
+      document
+        .getElementById("transferForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const data = {
+            sender_id: document.getElementById("fromAccount").value,
+            recipient_id: document.getElementById("toAccount").value,
+            amount: parseFloat(document.getElementById("amount").value),
+          };
+          console.log(data);
+          fetch("http://localhost:8000/api/transfer_funds/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": document.querySelector(
+                "[name=csrfmiddlewaretoken]"
+              ).value,
+            },
+            body: JSON.stringify(data),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log(data);
+              showMessage(data.message, "success");
+              location.reload();
+            })
+            .catch((error) => {
+              console.log(error);
+              showMessage("Transfer failed", "error");
+            });
+        });
+    </script>
+  </body>
+</html>

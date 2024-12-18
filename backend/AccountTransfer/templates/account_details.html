@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Account Details</title>
+  </head>
+  <body>
+    <h1>Account Details</h1>
+    <div id="errorMessage" style="color: red; margin: 10px 0; display: none">
+      {% if error_message %}
+      <p>{{ error_message }}</p>
+      {% endif %}
+    </div>
+    <div id="accountDetails">
+      <p><strong>Account ID:</strong> {{ account.account_id }}</p>
+      <p><strong>Name:</strong> {{ account.name }}</p>
+      <p><strong>Balance:</strong> {{ account.balance }}</p>
+      <p><strong>Created At:</strong> {{ account.created_at }}</p>
+      <p><strong>Updated At:</strong> {{ account.updated_at }}</p>
+    </div>
+    <button onclick="goBack()">Back to Accounts</button>
+
+    <script>
+      function goBack() {
+        window.location.href = "http://localhost:8000/home/";
+      }
+    </script>
+  </body>
+</html>

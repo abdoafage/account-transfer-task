@@ -1,3 +1,4 @@
 env
 db.sqlite3
 # .env  # Uncomment this line if you want to ignore .env file
+__pycache__

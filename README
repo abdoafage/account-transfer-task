@@ -3,7 +3,7 @@
 The project can be run using Docker:
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 ### Testing the Project
@@ -11,5 +11,5 @@ docker-compose up --build
 The project can be tested using Docker:
 
 ```bash
-docker-compose -f docker-compose.testing up --build
+docker compose -f docker-compose.testing up --build
 ```
